@@ -66,8 +66,7 @@ fn create_zip_file(
     output_file: File,
     mut paths: Vec<PathBuf>,
     compression: CompressionMethod,
-) -> Result<(), std::io::Error>
-{
+) -> Result<(), std::io::Error> {
     paths.sort();
     let options = FileOptions::default()
         .last_modified_time(DateTime::default())
@@ -98,15 +97,15 @@ mod tests {
     // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
-//    #[test]
-//    fn test_add() {
-//        assert_eq!(add(1, 2), 3);
-//    }
-//
-//    #[test]
-//    fn test_bad_add() {
-//        // This assert would fire and test will fail.
-//        // Please note, that private functions can be tested too!
-//        assert_eq!(bad_add(1, 2), 3);
-//    }
+    //    #[test]
+    //    fn test_add() {
+    //        assert_eq!(add(1, 2), 3);
+    //    }
+    //
+    //    #[test]
+    //    fn test_bad_add() {
+    //        // This assert would fire and test will fail.
+    //        // Please note, that private functions can be tested too!
+    //        assert_eq!(bad_add(1, 2), 3);
+    //    }
 }
