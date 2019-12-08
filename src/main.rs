@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use structopt::clap::arg_enum;
 use structopt::StructOpt;
@@ -43,7 +43,12 @@ struct Opt {
 
 #[paw::main]
 fn main(args: Opt) -> Result<(), std::io::Error> {
-    let paths: Vec<PathBuf> = args.paths.into_iter().flat_map(handle_path).collect();
+    let paths: Vec<(PathBuf, PathBuf)> = args
+        .paths
+        .into_iter()
+        .flat_map(handle_path)
+        .map(|p| (p.clone(), p))
+        .collect();
     let output_file = File::create(args.output)?;
     create_zip_file(output_file, paths, args.compression.into())?;
     Ok(())
@@ -62,11 +67,14 @@ fn handle_path(path: PathBuf) -> Vec<PathBuf> {
     }
 }
 
-fn create_zip_file(
-    output_file: File,
-    mut paths: Vec<PathBuf>,
+fn create_zip_file<W>(
+    output_file: W,
+    mut paths: Vec<(PathBuf, PathBuf)>,
     compression: CompressionMethod,
-) -> Result<(), std::io::Error> {
+) -> Result<(), std::io::Error>
+where
+    W: Write + Seek,
+{
     paths.sort();
     let options = FileOptions::default()
         .last_modified_time(DateTime::default())
@@ -75,12 +83,15 @@ fn create_zip_file(
 
     let mut buffer = Vec::new();
 
-    for path in paths {
+    for (name, path) in paths {
         println!("{}", path.display());
         if path.is_dir() {
-            zip_writer.add_directory_from_path(path.as_path(), options)?;
+            if path.as_os_str().is_empty() {
+                continue;
+            }
+            zip_writer.add_directory_from_path(name.as_path(), options)?;
         } else {
-            zip_writer.start_file_from_path(path.as_path(), options)?;
+            zip_writer.start_file_from_path(name.as_path(), options)?;
             let mut f = File::open(path)?;
             f.read_to_end(&mut buffer)?;
             zip_writer.write_all(&*buffer)?;
@@ -94,18 +105,63 @@ fn create_zip_file(
 
 #[cfg(test)]
 mod tests {
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
+    use sha2::Digest;
+    use std::fs;
+    use std::io::Cursor;
+    use tempfile;
 
-    //    #[test]
-    //    fn test_add() {
-    //        assert_eq!(add(1, 2), 3);
-    //    }
-    //
-    //    #[test]
-    //    fn test_bad_add() {
-    //        // This assert would fire and test will fail.
-    //        // Please note, that private functions can be tested too!
-    //        assert_eq!(bad_add(1, 2), 3);
-    //    }
+    #[test]
+    fn test_consistency() {
+        let temp_dir = tempfile::tempdir().expect("Failed to make tempdir");
+        let files = vec!["test1", "test2", "test3"];
+        for f in &files {
+            fs::write(temp_dir.path().join(f), format!("file {}", f))
+                .expect("Could not write test file");
+        }
+        let mut buffer = Vec::new();
+        let zip_file = Cursor::new(&mut buffer);
+        let files_with_paths = files
+            .iter()
+            .map(|f| (PathBuf::from(f), temp_dir.path().join(f)))
+            .collect();
+        create_zip_file(zip_file, files_with_paths, CompressionMethod::Bzip2)
+            .expect("Error running create_zip_file");
+
+        let result = sha2::Sha256::digest(&buffer);
+        assert_eq!(
+            format!("{:x}", result),
+            "509e4fc21f84a6c4ed641effe8e6cf0f9e3a980d660ab10df86cb01165341a2f"
+        );
+    }
+
+    #[test]
+    fn test_handle_path_with_dir() {
+        let temp_dir = tempfile::tempdir().expect("Failed to make tempdir");
+        let root_file = temp_dir.path().join("test.txt");
+        let nested_directory = temp_dir.path().join("inner");
+        let nested_file = nested_directory.join("inner.txt");
+
+        File::create(&root_file).expect("Failed to create root_file");
+        std::fs::create_dir(&nested_directory).expect("Failed to create nested directory");
+        File::create(&nested_file).expect("Failed to create nested_file");
+
+        let root_path = temp_dir.into_path();
+
+        let mut results = handle_path(root_path.clone());
+        results.sort();
+
+        assert_eq!(
+            results,
+            vec![root_path, nested_directory, nested_file, root_file]
+        );
+    }
+
+    #[test]
+    fn test_handle_path_with_file() {
+        let temp_dir = tempfile::tempdir().expect("Failed to make tempdir");
+        let temp_file_path = temp_dir.path().join("test.txt");
+        File::create(&temp_file_path).expect("Failed to create temporary file");
+        assert_eq!(handle_path(temp_file_path.clone()), vec![temp_file_path]);
+    }
 }
