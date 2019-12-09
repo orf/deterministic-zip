@@ -13,7 +13,7 @@ the source had not changed.
 
 ## Homebrew (MacOS, Linux)
 
-`brew tap orf/brew`, then `brew install git-workspace`
+`brew tap orf/brew`, then `brew install deterministic-zip`
 
 ## Cargo
 
