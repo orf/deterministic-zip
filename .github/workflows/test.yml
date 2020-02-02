@@ -12,17 +12,14 @@ jobs:
         include:
           - os: ubuntu-latest
             rust: stable
-            target: x86_64-unknown-linux-gnu
             bin: deterministic-zip
             name: deterministic-zip-Linux-x86_64.tar.gz
           - os: macOS-latest
             rust: stable
-            target: x86_64-apple-darwin
             bin: deterministic-zip
             name: deterministic-zip-Darwin-x86_64.tar.gz
           - os: windows-latest
             rust: stable
-            target: x86_64-pc-windows-msvc
             bin: deterministic-zip.exe
             name: deterministic-zip-Windows-x86_64.zip
     env:
@@ -34,7 +31,6 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           override: true
-          target: ${{ matrix.target }}
 
       # Caching setup
       - name: Cache cargo registry
@@ -68,13 +64,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --release --target ${{ matrix.target }}
+          args: --release
       - name: Package
         if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         run: |
-          strip target/${{ matrix.target }}/release/${{ matrix.bin }}
-          cd target/${{ matrix.target }}/release
+          strip target/release/${{ matrix.bin }}
+          cd target/release
           if [[ "${{ matrix.os }}" == "windows-latest" ]]
           then
           7z a ../../../${{ matrix.name }} ${{ matrix.bin }}
