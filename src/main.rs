@@ -27,7 +27,7 @@ impl Into<CompressionMethod> for Compression {
 }
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "example", about = "An example of StructOpt usage.")]
+#[structopt()]
 struct Opt {
     #[structopt(parse(from_os_str))]
     output: PathBuf,
