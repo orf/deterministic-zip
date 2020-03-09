@@ -12,7 +12,6 @@ arg_enum! {
     enum Compression {
         None,
         Deflate,
-        Bzip2,
     }
 }
 
@@ -21,7 +20,6 @@ impl Into<CompressionMethod> for Compression {
         match self {
             Compression::None => CompressionMethod::Stored,
             Compression::Deflate => CompressionMethod::Deflated,
-            Compression::Bzip2 => CompressionMethod::Bzip2,
         }
     }
 }
@@ -34,8 +32,11 @@ struct Opt {
 
     #[structopt(short, long,
     possible_values = & Compression::variants(), case_insensitive = true,
-    default_value = "Bzip2")]
+    default_value = "Deflate")]
     compression: Compression,
+
+    #[structopt(short, long)]
+    quiet: bool,
 
     #[structopt(parse(from_os_str), required(true))]
     paths: Vec<PathBuf>,
@@ -50,7 +51,7 @@ fn main(args: Opt) -> Result<(), std::io::Error> {
         .map(|p| (p.clone(), p))
         .collect();
     let output_file = File::create(args.output)?;
-    create_zip_file(output_file, paths, args.compression.into())?;
+    create_zip_file(output_file, paths, args.compression.into(), args.quiet)?;
     Ok(())
 }
 
@@ -71,6 +72,7 @@ fn create_zip_file<W>(
     output_file: W,
     mut paths: Vec<(PathBuf, PathBuf)>,
     compression: CompressionMethod,
+    quiet: bool,
 ) -> Result<(), std::io::Error>
 where
     W: Write + Seek,
@@ -84,7 +86,9 @@ where
     let mut buffer = Vec::new();
 
     for (name, path) in paths {
-        println!("{}", path.display());
+        if !quiet {
+            println!("{}", path.display());
+        }
         if path.is_dir() {
             if path.as_os_str().is_empty() {
                 continue;
@@ -125,13 +129,18 @@ mod tests {
             .iter()
             .map(|f| (PathBuf::from(f), temp_dir.path().join(f)))
             .collect();
-        create_zip_file(zip_file, files_with_paths, CompressionMethod::Bzip2)
-            .expect("Error running create_zip_file");
+        create_zip_file(
+            zip_file,
+            files_with_paths,
+            CompressionMethod::Deflated,
+            true,
+        )
+        .expect("Error running create_zip_file");
 
         let result = sha2::Sha256::digest(&buffer);
         assert_eq!(
             format!("{:x}", result),
-            "509e4fc21f84a6c4ed641effe8e6cf0f9e3a980d660ab10df86cb01165341a2f"
+            "810a8f84ba4ab8300152e6c07f250c717fc646ba0f391ee8c148747f212f99b9"
         );
     }
 
