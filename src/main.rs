@@ -12,7 +12,6 @@ arg_enum! {
     enum Compression {
         None,
         Deflate,
-        Bzip2,
     }
 }
 
@@ -21,7 +20,6 @@ impl Into<CompressionMethod> for Compression {
         match self {
             Compression::None => CompressionMethod::Stored,
             Compression::Deflate => CompressionMethod::Deflated,
-            Compression::Bzip2 => CompressionMethod::Bzip2,
         }
     }
 }
@@ -34,7 +32,7 @@ struct Opt {
 
     #[structopt(short, long,
     possible_values = & Compression::variants(), case_insensitive = true,
-    default_value = "Bzip2")]
+    default_value = "Deflate")]
     compression: Compression,
 
     #[structopt(parse(from_os_str), required(true))]
@@ -125,7 +123,7 @@ mod tests {
             .iter()
             .map(|f| (PathBuf::from(f), temp_dir.path().join(f)))
             .collect();
-        create_zip_file(zip_file, files_with_paths, CompressionMethod::Bzip2)
+        create_zip_file(zip_file, files_with_paths, CompressionMethod::Deflate)
             .expect("Error running create_zip_file");
 
         let result = sha2::Sha256::digest(&buffer);
