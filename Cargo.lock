@@ -117,7 +117,7 @@ dependencies = [
 
 [[package]]
 name = "deterministic-zip"
-version = "0.0.4"
+version = "0.0.5-alpha.0"
 dependencies = [
  "paw 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "sha2 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
