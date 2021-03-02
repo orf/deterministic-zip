@@ -18,7 +18,7 @@ exclude = [".github/**"]
 [dependencies]
 structopt = { version = "0.3", features = [ "paw" ] }
 paw = "1.0"
-zip = { version = "0.5.6", features = [ "deflate", "bzip2" ] }
+zip = { version = "0.5.11", features = [ "deflate", "bzip2" ] }
 walkdir = "2.3.1"
 
 [profile.release]
