@@ -1,0 +1,16 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: zip
+    versions:
+    - 0.5.10
+    - 0.5.11
+    - 0.5.9
+  - dependency-name: sha2
+    versions:
+    - 0.9.2
